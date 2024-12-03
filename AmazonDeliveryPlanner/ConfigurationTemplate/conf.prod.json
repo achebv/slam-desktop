@@ -1,0 +1,16 @@
+{
+  "admin_url": "https://dlg1prod.web.app",
+  "driver_list_url": "/#/drivers-list",
+  "default_tabs": [
+    "https://relay.amazon.co.uk/tours/",
+    "freeola.com/webmail/login/"
+  ],
+  "api_base_url": "/api",
+  "planner_list_url": "/auth2/external/get-all-planners",
+  "auto_download_export_file_random_min_interval": 20,
+  "auto_download_export_file_random_max_interval": 55,
+  "download_directory_path": "c:\\temp\\amazon_download_directory",
+  "file_upload_url": "/auth2/external/upload",
+  "debug": true,
+  "planning_overview_url": "/#/planning-preview/{user_id}/chat"
+}

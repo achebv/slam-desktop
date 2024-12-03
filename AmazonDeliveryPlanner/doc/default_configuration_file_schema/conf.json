@@ -1,0 +1,16 @@
+{
+  "admin_url": "https://dlg1prod.web.app",
+  "file_upload_url": "/auth2/external/upload",
+  "default_tabs": [
+    "https://relay.amazon.com/",
+    "http://google.com",
+    "http://localhost/test_amazonrelay_dp/download.html"
+  ],
+  "api_base_url": "/api",
+  "relay_credentials_email": "relay_email_test",
+  "relay_credentials_pass": "relay_pass_test",
+  "admin_credentials_email": "admin_email_test",
+  "admin_credentials_pass": "admin_pass_test",
+  "download_directory_path": "c:\\temp\\amazon_download_directory",
+  "debug": 1
+}

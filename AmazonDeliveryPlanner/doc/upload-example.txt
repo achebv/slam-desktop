@@ -1,0 +1,20 @@
+fetch("https://dlg1prod.web.app/api/trips/upload", {
+  "headers": {
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "en-US,en;q=0.9,ro;q=0.8,de;q=0.7,de-AT;q=0.6,de-DE;q=0.5,de-LI;q=0.4,de-CH;q=0.3",
+    "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryhBHYdArkn6edJ4H6",
+    "sec-ch-ua": "\"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"108\", \"Google Chrome\";v=\"108\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "ts30zbhlapp": "U2FsdGVkX19h1Ccdr3blits121hlappnvAqNs0+mPq1fJHeVh9ijw0onBcJLGiooj+0CYw9psIGL2ts121hlappxpaDNtTudjSM7TXkBoaRDKWa3rfE5wMAm7wNV86ZxFH9tDMgUyXsf6JlwoKefj1W5JUNa1Pz51+zts121hlappRXSfVunq4RCihdS3EpcsXCFXQEYZ7uoTPmRJqsqX4geYSMBTts121hlappLI18s8Y2RdfuNvav5335MjTRK35BTuXaRO50TP7T3kz2KgJVIrlylxPOWLsXb9vEqYZn+UVJ5auTRKS4QUmM8dfdkDT6+eL5Ln4Ph5JadIG2CJ44n2DoYO1HxV6TLJmz43bOKi+uvVts121hlappJGvtzXmzna44RgAHEHQLtnZCI6cDXO9FjFtFts121hlappennEts121hlappTrbD7e0mk8SlBtJaMkocHHAmkpOsw6Ngm9J7ts121hlappTReiCoxQgcc3Xv5Xt12LBsKFtK+iNm96+d0JnuhB5W2A+YFcn+rn89ch5sClcpbYkTts121hlappw7YVOEkujiEvVKAFKG0YIMP0tr0+PorOvmV4DLaNWh0XPpq5nzDYaZgv3AFjTO1KT7LmrcTOd5zDnOG4ikpEfV54v8jPe+UJCdmXQ8aO+wAV5XUNhhGHYWO7qlGJoHxfrUd03kiYmNdRi1ghXufW6T6OHbYNe3xE1oYjKIDKIk3FCygEEnBb9uSaD2xlVDzHH9qPPdkZqts121hlapp4NFAv8HyLapLts121hlappGnC7z+zats121hlappkts121hlapp4UPOwQDIvxeS7JN09wKZF5AkhnYkoFqHhP+xTts121hlappEGW978rT9oMAZSzJGLshuSiapBNts121hlappegX5QMMXTq9yOcgMxPts121hlappWiXxfigp2vo6KvS54eAvj0XOKvp08WUAlnXX4ts121hlappBIHOBA2guU1EXOHjdrHVSmCbXHxts121hlappmlsets121hlappwkcKONWnewDET6KfPCMumoDJOV+uvbts121hlappa+qg9tP5vX0KeQZnKGXMvK1lm6e0meZS+v2ts121hlappRts121hlapp9hPJR+mUYcJhpd26GZrts121hlappUpbF9DSKYPlIZPFc8Gu7T6zHQ0usGXev5x8Mts121hlappDHkCsWqpomQY8HlrT6uENJmjK814jqTSB4D2ERcsYCpEts121hlappwMyynxwFrAsOA=="
+  },
+  "referrer": "https://dlg1prod.web.app/",
+  "referrerPolicy": "strict-origin-when-cross-origin",
+  "body": "------WebKitFormBoundaryhBHYdArkn6edJ4H6\r\nContent-Disposition: form-data; name=\"files\"; filename=\"Trips 51.csv\"\r\nContent-Type: text/csv\r\n\r\n\r\n------WebKitFormBoundaryhBHYdArkn6edJ4H6--\r\n",
+  "method": "POST",
+  "mode": "cors",
+  "credentials": "omit"
+});

@@ -1,0 +1,20 @@
+https://qa.dlg1.app/#/admin
+
+florin@doitdev.ro
+pass: fl0rin
+
+https://qa.dlg1.app/#/trips
+
+curl --location --request POST 'https://qa-dlg1prod.web.app/api/auth2/external/upload' \
+--form 'files=@"/C:/_mutate/desktop/Trips 51.csv"'
+
+curl --location --request POST 'https://qa-dlg1prod.web.app/api/auth2/external/upload' \ --form 'files=@"/C:/Users/X/source/repos/AmazonDeliveryPlanner/AmazonDeliveryPlanner/doc/Trips 51.csv"'
+
+var client = new RestClient("https://qa-dlg1prod.web.app/api/auth2/external/upload");
+client.Timeout = -1;
+
+var request = new RestRequest(Method.POST);
+request.AddFile("files", "C:\Users\X\source\repos\AmazonDeliveryPlanner\AmazonDeliveryPlanner\doc\Trips 51.csv");
+IRestResponse response = client.Execute(request);
+
+Console.WriteLine(response.Content);
