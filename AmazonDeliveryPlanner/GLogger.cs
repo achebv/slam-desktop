@@ -1,11 +1,14 @@
 ﻿using System;
 using System.IO;
+using System.Text;
+using System.Threading;
 
 namespace AmazonDeliveryPlanner
 {
     public class GLogger
     {
         string logFilePath;
+        private static readonly Mutex mutex = new Mutex();
 
         StreamWriter logSw;
 
@@ -24,9 +27,20 @@ namespace AmazonDeliveryPlanner
             if (level <= 1)
                 GlobalContext.MainWindow.Output(text);
 
-            //File.AppendAllText(logFilePath, string.Format("{0} : {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"), text));
-            logSw.WriteLine(string.Format("{0} : {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"), text));
-            logSw.Flush();
+            string logEntry = string.Format("{0} : {1}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"), text);
+            mutex.WaitOne();
+            try
+            {
+                logSw.WriteLine(logEntry);
+                logSw.Flush(); // Ensure the log entry is written to the file immediately
+            }
+            finally
+            {
+                mutex.ReleaseMutex();
+            }
         }
+
+
+
     }
 }

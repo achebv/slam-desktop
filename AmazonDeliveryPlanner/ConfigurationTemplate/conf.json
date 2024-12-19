@@ -1,16 +1,34 @@
 {
   "admin_url": "http://localhost:8085",
-  "driver_list_url": "/#/drivers-list",
-  "default_tabs": [
-    "https://relay.amazon.co.uk/tours/",
-    "freeola.com/webmail/login/"
-  ],
   "api_base_url": "/api",
-  "planner_list_url": "/auth2/external/get-all-planners",
-  "auto_download_export_file_random_min_interval": 20,
-  "auto_download_export_file_random_max_interval": 55,
+  "amz_tabs": [
+    {
+      "url": "https://relay.amazon.co.uk/tours/upcoming",
+      "min_min": 12,
+      "max_min": 21
+    },
+    {
+      "url": "https://relay.amazon.co.uk/tours/in-transit",
+      "min_min": 15,
+      "max_min": 26
+    },
+    {
+      "url": "https://relay.amazon.co.uk/tours/history",
+      "min_min": 14,
+      "max_min": 31
+    }
+  ],
+  "relay_auth1": {
+    "username": "data@slamdvd.co.uk",
+    "password": "Slam12345!"
+  },
+  "relay_auth": {
+    "username": "planners@dlg1.co.uk",
+    "password": "Dual202020"
+  },
+  "admin_token": "sha1(email).sha1(pass)",
+  "admin_token_tpl": "sh1()",
   "download_directory_path": "c:\\temp\\amazon_download_directory",
   "file_upload_url": "/auth2/external/upload",
-  "debug": true,
-  "planning_overview_url": "/#/planning-preview/{user_id}/chat"
+  "debug": true
 }

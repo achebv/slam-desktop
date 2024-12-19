@@ -14,7 +14,8 @@ namespace AmazonDeliveryPlanner.API
         {
             using (WebClient wc = new WebClient())
             {
-                string getPlannersURL = GlobalContext.SerializedConfiguration.AdminURL + GlobalContext.SerializedConfiguration.ApiBaseURL + GlobalContext.SerializedConfiguration.PlannerListURL;
+                string getPlannersURL = GlobalContext.SerializedConfiguration.AdminURL + GlobalContext.SerializedConfiguration.APIBaseURL;
+                    // + GlobalContext.SerializedConfiguration.PlannerListURL;
                 // MessageBox.Show(getPlannersURL);
                 GlobalContext.Log("Getting planners from  '{0}'", getPlannersURL);
                 var jsonResponse = wc.DownloadString(getPlannersURL);

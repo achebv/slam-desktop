@@ -148,38 +148,17 @@
     <Compile Include="API\data\DriverRouteEntity.cs" />
     <Compile Include="API\data\PlannerEntity.cs" />
     <Compile Include="API\InitAppApi.cs" />
-    <Compile Include="API\DriversAPI.cs" />
     <Compile Include="BrowserTimerExportUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="BrowserTimerExportUserControl.designer.cs">
       <DependentUpon>BrowserTimerExportUserControl.cs</DependentUpon>
     </Compile>
-    <Compile Include="BrowserUserControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="BrowserUserControl.designer.cs">
-      <DependentUpon>BrowserUserControl.cs</DependentUpon>
-    </Compile>
     <Content Include="CEF\js\clickExportTripsButton.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Compile Include="TimespanExtensions.cs" />
     <Compile Include="DownloadHandler.cs" />
-    <Compile Include="DriverUserControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="DriverUserControl.Designer.cs">
-      <DependentUpon>DriverUserControl.cs</DependentUpon>
-    </Compile>
-    <Compile Include="BrowserKeyboardHandler.cs" />
-    <Compile Include="BrowserCallbackObjectForJs.cs" />
-    <Compile Include="PlannerSelectorForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PlannerSelectorForm.Designer.cs">
-      <DependentUpon>PlannerSelectorForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="GlobalContext.cs" />
     <Compile Include="GLogger.cs" />
     <Compile Include="MainForm.cs">
@@ -196,22 +175,11 @@
     <Compile Include="SettingsForm.designer.cs">
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="DriverSessionObject.cs" />
     <Compile Include="SerializedConfiguration.cs" />
-    <Compile Include="KeyboardHandler.cs" />
     <Compile Include="DbLite.cs" />
     <Compile Include="Utilities.cs" />
     <EmbeddedResource Include="BrowserTimerExportUserControl.resx">
       <DependentUpon>BrowserTimerExportUserControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="BrowserUserControl.resx">
-      <DependentUpon>BrowserUserControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="DriverUserControl.resx">
-      <DependentUpon>DriverUserControl.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PlannerSelectorForm.resx">
-      <DependentUpon>PlannerSelectorForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -230,7 +198,9 @@
       <DependentUpon>SettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="AmazonDeliveryPlanner_TemporaryKey.pfx" />
-    <None Include="ConfigurationTemplate\conf.json" />
+    <None Include="ConfigurationTemplate\conf.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

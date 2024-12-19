@@ -14,6 +14,7 @@ using System.Runtime.Caching;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static AmazonDeliveryPlanner.SerializedConfiguration;
 using File = System.IO.File;
 using ListBox = System.Windows.Forms.ListBox;
 // using System.Runtime.InteropServices;
@@ -30,40 +31,18 @@ namespace AmazonDeliveryPlanner
 
         public MainForm()
         {
-            InitializeComponent();
-
-            GlobalContext.ApplicationTitle = "AMZ Relay Import - v.1-28.10.2024";
-            GlobalContext.MainWindow = this;
-            this.Text = GlobalContext.ApplicationTitle;
-
             try
             {
-                Init();
-                if (!OpenPlannerSelectorForm())
-                {
-                    MessageBox.Show("Could not get planner list - application will now exit!", GlobalContext.ApplicationTitle);
-                    System.Diagnostics.Process.GetCurrentProcess().Kill();
-                    Application.Exit();
-                    return;
-                }
-                else
-                {
-                    // set planner name
-                    plannerLabel.Text = "\uA19C" + " " + GlobalContext.LoggedInPlanner.ToString(); // U+1F464 ??  U+A19C ?
-                    string[] roles = GlobalContext.LoggedInPlanner.roles;
-                    if (roles.Contains("pm") || roles.Contains("admin"))
-                    {
-                        exportFileAutoDownloadEnabledCheckBox.Checked = true;
-                        exportFileAutoDownloadEnabledCheckBox.Show();
-                    }
-                    else
-                    {
-                        exportFileAutoDownloadEnabledCheckBox.Checked = false;
-                        exportFileAutoDownloadEnabledCheckBox.Hide();
-                    }
-                }
+                InitConfig();
+                InitializeComponent();
+                LoadAmazonTabs();
+                GlobalContext.MainWindow = this;
+                GlobalContext.ApplicationTitle = "Slam AMZ Import - 2024.12.11 - v1";
+                this.Text = GlobalContext.ApplicationTitle;
+                plannerLabel.Text = "Welcome"; 
+                exportFileAutoDownloadEnabledCheckBox.Checked = true;
+                exportFileAutoDownloadEnabledCheckBox.Show();
                 InitMainFormDataControls();
-                InitDriversPanelBrowser();
             }
             catch (Exception ex)
             {
@@ -74,14 +53,11 @@ namespace AmazonDeliveryPlanner
                     ex.Source + System.Environment.NewLine
                     );
             }
-
-            driversPanel.Visible = false;
         }
 
         public static void InitializeCEF()
         {
             GlobalContext.Log("Director aplicatie: {0}", Utilities.GetApplicationPath());
-
             if (Cef.IsInitialized)
             {
                 GlobalContext.Log("CEF a fost deja initializat");
@@ -112,54 +88,69 @@ namespace AmazonDeliveryPlanner
 
         }
 
-        void Init()
+        void InitConfig()
         {
             try
             {
-                if (!Directory.Exists(GetFileStoragePath()))
-                    Directory.CreateDirectory(GetFileStoragePath());
-            }
-            catch (Exception)
-            {
-            }
+                // Ensure File Storage Path exists
+                EnsureDirectoryExists(GetFileStoragePath());
 
-            //settingsFilePath = Utilities.GetApplicationPath() + Path.DirectorySeparatorChar + GlobalContext.OptionsFile;
-            //settingsFilePath = Utilities.GetUserApplicationPath() + Path.DirectorySeparatorChar + GlobalContext.OptionsFile;
-            configurationFilePath = GetFileStoragePath() + Path.DirectorySeparatorChar + GlobalContext.ConfigurationFileName;
+                // Initialize configuration file path
+                configurationFilePath = Path.Combine(GetFileStoragePath(), GlobalContext.ConfigurationFileName);
 
-            if (File.Exists(configurationFilePath))
-                LoadConfiguration();
-            // GlobalContext.SerializedConfiguration = (SerializedConfiguration)Utilities.LoadXML(configurationFilePath, typeof(SerializedConfiguration));
-            else
-            {
-                // SerializedConfiguration conf = SerializedConfiguration.GetDefaultOptions();
-                SerializedConfiguration conf = new SerializedConfiguration();
-                GlobalContext.SerializedConfiguration = conf;
-                SaveConfiguration();
-                // Utilities.SaveXML(configurationFilePath, GlobalContext.SerializedConfiguration);
-            }
+                // Load existing configuration or initialize a new one
+                if (File.Exists(configurationFilePath))
+                {
+                    LoadConfiguration();
+                }
+                else
+                {
+                    InitializeNewConfiguration();
+                }
 
-            try
-            {
-                if (!Directory.Exists(GlobalContext.SerializedConfiguration.DownloadDirectoryPath))
-                    Directory.CreateDirectory(GlobalContext.SerializedConfiguration.DownloadDirectoryPath);
-            }
-            catch (Exception)
-            {
-            }
+                // Ensure Download Directory exists
+                EnsureDirectoryExists(GlobalContext.SerializedConfiguration.DownloadDirectoryPath);
 
-            // using System.Net;
+                // Configure network security protocols
+                ConfigureNetworkSecurity();
+            }
+            catch (Exception ex)
+            {
+                // Log error for debugging purposes
+                LogException("Initialization failed", ex);
+                throw; // Rethrow to allow caller to handle appropriately
+            }
+        }
+
+        private void EnsureDirectoryExists(string path)
+        {
+            if (!string.IsNullOrWhiteSpace(path) && !Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+
+        private void InitializeNewConfiguration()
+        {
+            GlobalContext.SerializedConfiguration = new SerializedConfiguration();
+            SaveConfiguration();
+        }
+
+        private void ConfigureNetworkSecurity()
+        {
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            // Use SecurityProtocolType.Ssl3 if needed for compatibility reasons
-            // otherwise we get {"The request was aborted: Could not create SSL/TLS secure channel."}
-
-            LoadAmazonTabs();
         }
+
+        private void LogException(string message, Exception ex)
+        {
+            // Placeholder for actual logging implementation
+            Console.WriteLine($"{message}: {ex.Message}");
+        }
+
 
         void InitMainFormDataControls()
         {
-            UpdateDriverList();
             LoadScripts();
             InitializeCEF();
             if (!GlobalContext.SerializedConfiguration.Debug)
@@ -170,50 +161,40 @@ namespace AmazonDeliveryPlanner
         {
             await Task.Delay(4000);
 
-            List<TripPageConfiguration> tpcs = GlobalContext.ApiConfig.tripPages;
+            AmzTab[] tpcs = GlobalContext.SerializedConfiguration.AmzTabs;
 
-            TripPageConfiguration upcomingTPC = null;
-            TripPageConfiguration intransitTPC = null;
-            TripPageConfiguration historyTPC = null;
-
-            if (tpcs != null && tpcs.Count > 0)
-            {
-                upcomingTPC = tpcs[0];
-                if (tpcs.Count > 1)
-                    intransitTPC = tpcs[1];
-
-                if (tpcs.Count > 2)
-                    historyTPC = tpcs[2];
-            }
+            AmzTab upcomingTPC = tpcs[0];
+            AmzTab intransitTPC = tpcs[1];
+            AmzTab historyTPC = tpcs[2];
 
             if (upcomingTPC != null)
             {
-                upcomingTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = upcomingTPC.MinRandomIntervalMinutes;
-                upcomingTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = upcomingTPC.MaxRandomIntervalMinutes;
+                upcomingTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = upcomingTPC.MinMin;
+                upcomingTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = upcomingTPC.MaxMin;
                 upcomingTabBrowserTimerExportUserControl.ExportFileAutoDownloadEnabled = exportFileAutoDownloadEnabledCheckBox.Checked;
                 upcomingTabBrowserTimerExportUserControl.DloadDone += DloadDoneHandler;
                 upcomingTabBrowserTimerExportUserControl.ResetTimers();
-                upcomingTabBrowserTimerExportUserControl.GoToURL(upcomingTPC.Url);
+                upcomingTabBrowserTimerExportUserControl.GoToURL(upcomingTPC.URL);
             }
 
             if (intransitTPC != null)
             {
-                intransitTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = intransitTPC.MinRandomIntervalMinutes;
-                intransitTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = intransitTPC.MaxRandomIntervalMinutes;
+                intransitTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = intransitTPC.MinMin;
+                intransitTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = intransitTPC.MaxMin;
                 intransitTabBrowserTimerExportUserControl.ExportFileAutoDownloadEnabled = exportFileAutoDownloadEnabledCheckBox.Checked;
                 intransitTabBrowserTimerExportUserControl.DloadDone += DloadDoneHandler;
                 intransitTabBrowserTimerExportUserControl.ResetTimers();
-                intransitTabBrowserTimerExportUserControl.GoToURL(intransitTPC.Url);
+                intransitTabBrowserTimerExportUserControl.GoToURL(intransitTPC.URL);
             }
 
             if (historyTPC != null)
             {
-                historyTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = historyTPC.MinRandomIntervalMinutes;
-                historyTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = historyTPC.MaxRandomIntervalMinutes;
+                historyTabBrowserTimerExportUserControl.MinRandomIntervalMinutes = historyTPC.MinMin;
+                historyTabBrowserTimerExportUserControl.MaxRandomIntervalMinutes = historyTPC.MaxMin;
                 historyTabBrowserTimerExportUserControl.ExportFileAutoDownloadEnabled = exportFileAutoDownloadEnabledCheckBox.Checked;
                 historyTabBrowserTimerExportUserControl.DloadDone += DloadDoneHandler;
                 historyTabBrowserTimerExportUserControl.ResetTimers();
-                historyTabBrowserTimerExportUserControl.GoToURL(historyTPC.Url);
+                historyTabBrowserTimerExportUserControl.GoToURL(historyTPC.URL);
             }
         }
 
@@ -347,351 +328,6 @@ namespace AmazonDeliveryPlanner
             db.AddIdToList(idToAdd);
         }
 
-        public List<int> GetListOfIds()
-        {
-            DbLite db = new DbLite();
-            return db.GetListOfIds();
-        }
-
-        void AddSessionTab()
-        {
-            if (selectedDriver == null)
-            {
-                MessageBox.Show("No driver selected", GlobalContext.ApplicationTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            AddIdToList((int)selectedDriver.driver_id);
-
-
-            foreach (TabPage page in tabControl.TabPages)
-            {
-                if (((DriverSessionObject)page.Tag).DriverId == selectedDriver.driver_id)
-                {
-                    tabControl.SelectedTab = page;
-                    return;
-                }
-            }
-
-            sessionCount++;
-
-            TabPage stp = new TabPage();
-
-            tabControl.SuspendLayout();
-
-            stp.SuspendLayout();
-
-            tabControl.TabPages.Add(stp);
-
-
-            stp.Name = "PageSesiune" + sessionCount;
-            stp.Text = selectedDriver.ToString();
-
-            DriverSessionObject driverSessionObject = new DriverSessionObject()
-            {
-                DriverId = selectedDriver.driver_id
-            };
-
-            stp.Tag = driverSessionObject; // the object changes on resfreshing data from server as new objects are created for the same entity
-
-
-            DriverUserControl driverUC = new DriverUserControl(selectedDriver);
-
-            driverUC.SuspendLayout();
-
-
-            driverUC.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
-            driverUC.Location = new System.Drawing.Point(3, 0);
-            // driverUC.Width = stp.Width - 10; //?
-            driverUC.Dock = DockStyle.Fill;
-            driverUC.Name = "TCSesiune_DriverUC_" + sessionCount;
-
-            // driverUC.Tag = selectedDriver;
-            driverUC.SessionClosed += DriverUC_SessionClosed;
-            driverUC.OpenURL += DriverUC_OpenURL;
-
-            driverUC.ResumeLayout();
-
-            stp.Controls.Add(driverUC);
-
-            driverSessionObject.DriverUC = driverUC;
-
-
-            TabControl urlsTabControl = null;
-
-            if (uniqueSharedUrlsTabControl == null)
-            {
-                urlsTabControl = new System.Windows.Forms.TabControl();
-
-
-
-                urlsTabControl.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom | AnchorStyles.Top;
-                urlsTabControl.Location = new System.Drawing.Point(3, driverUC.Height + 0 + 5);
-
-                urlsTabControl.Name = "TCSesiune" + sessionCount;
-
-                urlsTabControl.Dock = DockStyle.Fill;
-
-
-
-                RequestContextSettings requestContextSettings = new RequestContextSettings();
-
-                requestContextSettings.PersistSessionCookies = !false;
-                requestContextSettings.PersistUserPreferences = !false;
-
-                string cachePath = Path.Combine(Utilities.GetApplicationPath(), "cachedirs", "TCSesiune_" + selectedDriver.driver_id); // "TCSesiune" + sessionCount
-
-                if (!Directory.Exists(cachePath))
-                    Directory.CreateDirectory(cachePath);
-
-                requestContextSettings.CachePath = cachePath;
-
-                // if (false)
-                foreach (string url in GlobalContext.SerializedConfiguration.DefaultTabs /*GlobalContext.Urls*/)
-                {
-                    TabPage urlTabPage = new System.Windows.Forms.TabPage();
-
-
-                    urlsTabControl.Controls.Add(urlTabPage);
-
-                    urlTabPage.Location = new System.Drawing.Point(4, 24 /*+ driverUC.Height*/);
-                    // urlTabPage.Name = "tabPage1";
-                    urlTabPage.Padding = new System.Windows.Forms.Padding(3);
-                    urlTabPage.Size = new System.Drawing.Size(1071, 659 /*- driverUC.Height*/);
-                    urlTabPage.TabIndex = 0;
-                    urlTabPage.Text = GetUrlTabPageName(url);
-                    urlTabPage.UseVisualStyleBackColor = true;
-
-                    // urlTabPage.BackColor = Color.Green;
-
-                    driverSessionObject.ReqContextSettings = requestContextSettings;
-
-                    BrowserUserControl bUC = new BrowserUserControl(url, requestContextSettings, selectedDriver.driver_id);
-
-                    {
-                        // mfbUC.Cif = cif;
-
-                        bUC.SuspendLayout();
-
-                        urlTabPage.Controls.Add(bUC);
-
-                        urlTabPage.Tag = bUC;
-
-                        bUC.Dock = System.Windows.Forms.DockStyle.Fill;
-                        bUC.Location = new System.Drawing.Point(3, 0);
-                        bUC.TabIndex = 1;
-                        bUC.Close += BUC_Close;
-
-                        bUC.ResumeLayout(!false);
-
-                        bUC.PerformLayout();
-
-                        bUC.Tag = driverUC;
-                        bUC.FileUploadFinished += BUC_FileUploadFinished;
-                        bUC.UpdateAutoDownloadStatus += BUC_UpdateAutoDownloadStatus;
-                    }
-
-                    urlTabPage.ResumeLayout();
-                }
-
-                urlsTabControl.SelectedIndex = 0;
-
-                urlsTabControl.SuspendLayout();
-
-                urlsTabControl.ResumeLayout(false);
-
-                uniqueSharedUrlsTabControl = urlsTabControl;
-            }
-            else
-            {
-                driverUC.SplitContainer.Panel1.Controls.Add(urlsTabControl);
-            }
-
-            // stp.Controls.Add(urlsTabControl);
-            driverUC.SuspendLayout();
-            driverUC.SplitContainer.SuspendLayout();
-            driverUC.SplitContainer.Panel1.Controls.Add(urlsTabControl);
-            driverUC.UrlsTabControl = urlsTabControl;
-            driverUC.SplitContainer.ResumeLayout();
-            driverUC.ResumeLayout();
-
-            stp.Controls.Add(driverUC);
-
-
-            stp.ResumeLayout();
-
-
-            tabControl.ResumeLayout();
-
-            tabControl.SelectTab(stp);
-
-            tabControl.Refresh();
-            tabControl.Invalidate();
-
-            tabControl.PerformLayout();
-
-
-            openTabDrivers[selectedDriver.driver_id] = true;
-        }
-
-        private void BUC_UpdateAutoDownloadStatus(object sender, BrowserUserControl.UpdateAutoDownloadIntervalStatusEventArgs e)
-        {
-            System.Action sa = (System.Action)(() =>
-            {
-                ((sender as BrowserUserControl).Tag as DriverUserControl).UpdateAutoDownloadLabel(e.Text);
-            });
-
-            if (this.InvokeRequired)
-                this.Invoke(sa);
-            else
-                sa();
-        }
-
-        private void BUC_FileUploadFinished(object sender, BrowserUserControl.FileUploadFinishedEventArgs e)
-        {
-            System.Action sa = (System.Action)(() =>
-            {
-                ((sender as BrowserUserControl).Tag as DriverUserControl).UpdateUploadLabel("uploaded file " + e.FileName);
-            });
-
-            if (this.InvokeRequired)
-                this.Invoke(sa);
-            else
-                sa();
-        }
-
-        private void DriverUC_OpenURL(object sender, OpenURLEventArgs e)
-        {
-
-
-            {
-
-                TabControl urlsTabControl = uniqueSharedUrlsTabControl;
-                TabPage page = (sender as Control).Parent as TabPage;
-
-                #region GMaps open test
-                // bool isGMapsOpen = false;
-
-                foreach (TabPage tp in urlsTabControl.TabPages) // 
-                    if ((tp.Tag as BrowserUserControl).Url.Contains("google.com/maps"))
-                    {
-                        // isGMapsOpen = true;
-
-                        if (e.URL.Contains("google.com/maps"))
-                        {
-                            urlsTabControl.SelectedTab = tp;
-                            return; // if there's one tab page already open with the google maps location, don't open a second one
-                        }
-                    }
-
-                //if (isGMapsOpen && e.URL.Contains("google.com/maps"))
-                //    return; // if there's one tab page already open with the google maps location, don't open a second one
-                #endregion
-
-                TabPage urlTabPage = new System.Windows.Forms.TabPage();
-
-                // 
-                // tabControl
-                // 
-                urlsTabControl.Controls.Add(urlTabPage);
-
-                // tabPage1
-                // 
-                urlTabPage.Location = new System.Drawing.Point(4, 24 /*+ driverUC.Height*/);
-                // urlTabPage.Name = "tabPage1";
-                urlTabPage.Padding = new System.Windows.Forms.Padding(3);
-                urlTabPage.Size = new System.Drawing.Size(1071, 659 /*- driverUC.Height*/);
-                urlTabPage.TabIndex = 0;
-                urlTabPage.Text = GetUrlTabPageName(e.URL);
-                urlTabPage.UseVisualStyleBackColor = true;
-
-                // urlTabPage.BackColor = Color.Green;
-
-                BrowserUserControl bUC = new BrowserUserControl(e.URL, ((DriverSessionObject)page.Tag).ReqContextSettings, ((DriverSessionObject)page.Tag).DriverId);
-
-                {
-                    // mfbUC.Cif = cif;
-
-                    bUC.SuspendLayout();
-
-                    urlTabPage.Controls.Add(bUC);
-
-                    urlTabPage.Tag = bUC;
-
-                    // bUC.OnFinishedQuery += MFbUC_OnFinishedQuery;
-
-                    bUC.Dock = System.Windows.Forms.DockStyle.Fill;
-                    bUC.Location = new System.Drawing.Point(3, 0);
-                    // bpipbUC.Name = "x";
-                    // this.tabControl1.Size = new System.Drawing.Size(852, 586);
-                    bUC.TabIndex = 1;
-                    bUC.Close += BUC_Close;
-
-                    bUC.ResumeLayout(!false);
-
-                    bUC.PerformLayout();
-                }
-
-                urlTabPage.ResumeLayout();
-
-                urlsTabControl.SelectedTab = urlTabPage;
-            }
-
-        }
-
-        private void BUC_Close(object sender, EventArgs e)
-        {
-
-            TabControl tcp = (sender as BrowserUserControl).Parent.Parent as TabControl;
-
-            foreach (TabPage page in tabControl.TabPages)
-            {
-                TabControl tc = ((DriverSessionObject)page.Tag).DriverUC.UrlsTabControl;
-
-                {
-                    TabControl urlsTabControl = tc;
-
-                    if (urlsTabControl != null)
-                        foreach (TabPage tp in urlsTabControl.TabPages) // 
-                            if ((tp.Tag as BrowserUserControl) == sender)
-                                urlsTabControl.TabPages.Remove(tp);
-                }
-
-
-            }
-        }
-        private void DriverUC_SessionClosed(object sender, EventArgs e)
-        {
-            DbLite db = new DbLite();
-
-            if (tabControl.TabPages.IndexOf((sender as DriverUserControl).Parent as TabPage) == 0)
-                if (tabControl.TabPages.Count > 1)
-                {
-                    ((DriverSessionObject)(tabControl.TabPages[1]).Tag).DriverUC.SplitContainer.Panel1.Controls.Add(uniqueSharedUrlsTabControl);
-                }
-
-
-            foreach (TabPage page in tabControl.TabPages)
-            {
-                if (page.Controls.Contains((Control)sender))
-                {
-                    tabControl.TabPages.Remove(page);
-
-
-                    Driver drv = GlobalContext.LastDriverList.drivers.Where(dr => dr.driver_id == ((DriverSessionObject)page.Tag).DriverId).SingleOrDefault();
-
-                    openTabDrivers[drv.driver_id] = false;
-
-                    db.DeleteIdFromList((int)drv.driver_id);
-
-                    driverListBox.Refresh();
-                }
-            }
-
-            if (tabControl.TabPages.Count == 0)
-                uniqueSharedUrlsTabControl = null;
-        }
-
         private void openSettingsButton_Click(object sender, EventArgs e)
         {
             SettingsForm sForm = new SettingsForm();
@@ -703,111 +339,9 @@ namespace AmazonDeliveryPlanner
             }
         }
 
-        private void addSessionButton_Click(object sender, EventArgs e)
-        {
-            AddSessionTab();
-        }
-
         private void MainForm_Load(object sender, EventArgs e)
         {
 
-        }
-
-        DriverList _driverList;
-
-        void UpdateDriverList()
-        {
-            int tryCount = 0;
-            Exception lastException = null;
-
-            do
-            {
-                try
-                {
-                    tryCount++;
-
-                    DriverList driverList = DriversAPI.GetDrivers();
-
-                    GlobalContext.LastDriverList = driverList;
-
-                    _driverList = driverList;
-
-                    UpdateDriverListControl();
-
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    GlobalContext.Log("Exception getting drivers from web service: '{0}'", ex.Message);
-                    lastException = ex;
-                }
-            } while (tryCount < 4);
-
-            if (lastException != null)
-                MessageBox.Show("Exception loading drivers: " + lastException.Message);
-        }
-
-        void UpdateDriverListControl()
-        {
-            driverListBox.Items.Clear();
-
-            driverListBox.Items.AddRange(
-                GlobalContext.LastDriverList.drivers.Where(dr =>
-                {
-                    if (activeDriversRadioButton.Checked)
-                        return dr.is_user_active;
-                    else
-                        return true;
-                }).ToArray()
-            );
-
-            // openTabDrivers.Clear();
-
-            foreach (Driver dr in GlobalContext.LastDriverList.drivers)
-                if (!openTabDrivers.ContainsKey(dr.driver_id))
-                    openTabDrivers.Add(dr.driver_id, false);
-        }
-
-        private void refreshDriversButton_Click(object sender, EventArgs e)
-        {
-            UpdateDriverList();
-        }
-
-        Driver selectedDriver;
-
-        private void driverListBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            selectedDriver = GlobalContext.LastDriverList.drivers.Where(dr => dr.ToString() == driverListBox.SelectedItem.ToString()).SingleOrDefault();
-        }
-
-        private void driverListBox_DoubleClick(object sender, EventArgs e)
-        {
-            AddSessionTab();
-        }
-
-        private void driversRadioButton_CheckedChanged(object sender, EventArgs e)
-        {
-            UpdateDriverList();
-        }
-
-        private void driverListBox_DrawItem(object sender, DrawItemEventArgs e)
-        {
-            if (e.Index < 0)
-                return;
-
-            e.DrawBackground();
-
-            Graphics g = e.Graphics;
-
-            if (openTabDrivers.ElementAt(e.Index).Value)
-                g.FillRectangle(new SolidBrush(Color.LightBlue), e.Bounds);
-            else
-                g.FillRectangle(new SolidBrush(Color.White), e.Bounds);
-
-            ListBox lb = (ListBox)sender;
-            g.DrawString(lb.Items[e.Index].ToString(), e.Font, new SolidBrush(Color.Black), new PointF(e.Bounds.X, e.Bounds.Y));
-
-            e.DrawFocusRectangle();
         }
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
@@ -827,23 +361,6 @@ namespace AmazonDeliveryPlanner
                 return string.IsNullOrEmpty(url) ? "_____________" : (url.Length >= 20) ? url.Substring(0, 20) : url;
         }
 
-        private void Browser_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            if ((e.Control || e.KeyCode == Keys.ControlKey) && (e.KeyCode == Keys.F))
-            {
-                OpenSearchDriverForm();
-            }
-        }
-
-        private void MainForm_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Control && (e.KeyCode == Keys.NumPad1 || e.KeyCode == Keys.D1))
-                mainTabControl.SelectedTab = sessionsTabPage;
-
-            if ((e.Control || e.KeyCode == Keys.ControlKey) && (e.KeyCode == Keys.F))
-                OpenSearchDriverForm();
-        }
-
         void SaveConfiguration()
         {
             string confJsonString = Newtonsoft.Json.JsonConvert.SerializeObject(GlobalContext.SerializedConfiguration, Formatting.Indented);
@@ -853,13 +370,26 @@ namespace AmazonDeliveryPlanner
 
         void LoadConfiguration()
         {
-            string confJsonString = File.ReadAllText(configurationFilePath);
+            try
+            {
+                // Read the file content
+                string confJsonString = File.ReadAllText(configurationFilePath);
 
-            GlobalContext.SerializedConfiguration = Newtonsoft.Json.JsonConvert.DeserializeObject<SerializedConfiguration>(confJsonString);
+                // Log or print the file content for debugging purposes
+                Console.WriteLine("Configuration File Content:");
+                Console.WriteLine(confJsonString);
 
-            if (GlobalContext.SerializedConfiguration.DefaultTabs == null)
-                GlobalContext.SerializedConfiguration.DefaultTabs = new string[0];
+                // Deserialize the JSON string into the configuration object
+                GlobalContext.SerializedConfiguration =
+                    Newtonsoft.Json.JsonConvert.DeserializeObject<SerializedConfiguration>(confJsonString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading configuration: {ex.Message}");
+                throw;
+            }
         }
+
 
         // This is the directory in which  the settings, output files and measurements directory are placed
         // Normally it would be the %APPDATA% - User Application Path directory but for portability reasons (to be easily moved between computers keeping settings), the application path can be used
@@ -868,165 +398,7 @@ namespace AmazonDeliveryPlanner
             return Utilities.GetApplicationPath();
         }
 
-        private void toggleLeftPanelVisibilityButton_Click(object sender, EventArgs e)
-        {
-            ToggleLeftPanelVisibility();
-        }
-
-        void ToggleLeftPanelVisibility()
-        {
-            splitContainer1.Panel1Collapsed = !splitContainer1.Panel1Collapsed;
-            toggleLeftPanelVisibilityButton.Text = splitContainer1.Panel1Collapsed ? "\u220E \u220E" : "| \u220E";
-        }
-
-        void InitDriversPanelBrowser()
-        {
-            driversPanelBrowser = new ChromiumWebBrowser();
-            RequestContextSettings requestContextSettings = new RequestContextSettings();
-            requestContextSettings.PersistSessionCookies = !false;
-            requestContextSettings.PersistUserPreferences = !false;
-            if (requestContextSettings != null)
-                driversPanelBrowser.RequestContext = new RequestContext(requestContextSettings);
-
-            splitContainer1.Panel1.Controls.Add(driversPanelBrowser);
-            driversPanelBrowser.Dock = DockStyle.Fill;
-
-            driversPanelBrowser.FrameLoadEnd += DriversPanelBrowser_FrameLoadEnd;
-
-            this.PerformLayout();
-            this.Invalidate();
-            this.Refresh();
-
-            driversPanelBrowser.Dock = DockStyle.Fill;
-
-            refreshDriverListBrowserButton.BringToFront();
-
-            driversPanelBrowser.PreviewKeyDown += Browser_PreviewKeyDown;
-            driversPanelBrowser.KeyboardHandler = new BrowserKeyboardHandler();
-
-            var browserCallbackObjectForJs = new BrowserCallbackObjectForJs();
-
-            CefSharpSettings.WcfEnabled = true;
-            driversPanelBrowser.JavascriptObjectRepository.Settings.LegacyBindingEnabled = true;
-            driversPanelBrowser.JavascriptObjectRepository.Register("driverCallbackObj", browserCallbackObjectForJs, isAsync: false, options: BindingOptions.DefaultBinder);
-
-
-            List<int> listOfIds = GetListOfIds();
-
-            foreach (int id in listOfIds)
-            {
-                GlobalContext.Log(" ---------------- ID: " + id);
-                OpenDriverWindow(id.ToString(), true);
-                GlobalContext.Log(" ---------------- ID: " + id);
-            }
-
-            //tabControl.SelectedTab = tabControl.TabPages[0];
-        }
-
-        private void DriversPanelBrowser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
-        {
-            // throw new NotImplementedException();
-        }
-
-        private void refreshDriverListBrowserButton_Click(object sender, EventArgs e)
-        {
-            driversPanelBrowser.Reload(true);
-        }
-
         bool displayOnlyDriverGroupNameInDriversForm = false;
-
-        private void showOpenDriverFormButton_Click(object sender, EventArgs e)
-        {
-            OpenSearchDriverForm();
-        }
-
-        public void OpenSearchDriverForm()
-        {
-
-        }
-
-        private void showDriversBrowserControlDevToolsButton_Click(object sender, EventArgs e)
-        {
-            driversPanelBrowser.ShowDevTools();
-        }
-
-        public void OpenDriverWindow(string driverHash, bool forceCall = false)
-        {
-            int _driverId = 0;
-            string driverId = driverHash;
-            string messageId = "";
-            bool containsUnderscore = driverHash.Contains("_");
-            if (containsUnderscore)
-            {
-                string[] substrings = driverHash.Split('_');
-                // Split the string by underscore
-                driverId = substrings[0];
-                messageId = substrings[1];
-            }
-
-            try
-            {
-
-                _driverId = Convert.ToInt32(driverId);
-            }
-            catch (Exception ex)
-            {
-                Output(string.Format("The specified driverId value ('{1}') is not an integer number: '{0}'", ex.Message, driverId));
-                MessageBox.Show(string.Format("The specified driverId value ('{1}') is not an integer number: '{0}'", ex.Message, driverId), GlobalContext.ApplicationTitle);
-                return;
-            }
-
-            Driver clickedDriver = GlobalContext.LastDriverList.drivers.Where(dr => dr.driver_id == _driverId).FirstOrDefault();
-
-            if (clickedDriver == null)
-            {
-                Output(string.Format("The specified driverId value ('{0}') could not be found.", driverId));
-                MessageBox.Show(string.Format("The specified driverId value ('{0}') could not be found.", driverId), GlobalContext.ApplicationTitle);
-                return;
-            }
-
-            clickedDriver.message_id = messageId;
-
-            if (forceCall)
-            {
-                selectedDriver = clickedDriver;
-                AddSessionTab();
-            }
-            else
-            {
-
-                if (this.InvokeRequired)
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        selectedDriver = clickedDriver;
-                        AddSessionTab();
-                    });
-            }
-        }
-
-        public bool OpenPlannerSelectorForm()
-        {
-            UpdateAppInit();
-
-            if (_initApp == null || _initApp.planners == null || _initApp.planners.Length == 0)
-                return false;
-
-            PlannerSelectorForm plannerSelectorForm = new PlannerSelectorForm(_initApp.planners);
-
-            plannerSelectorForm.DisplayOnlyPlannerGroupName = false;
-            plannerSelectorForm.StartPosition = FormStartPosition.CenterScreen;
-
-            if (plannerSelectorForm.ShowDialog() == DialogResult.OK && plannerSelectorForm.SelectedPlanner != null)
-            {
-                GlobalContext.LoggedInPlanner = plannerSelectorForm.SelectedPlanner;
-                GlobalContext.Log($"Planner logged in: '{GlobalContext.LoggedInPlanner}'");
-
-                return true;
-            }
-
-            return false;
-        }
-
 
         void UpdateAppInit()
         {
@@ -1052,48 +424,7 @@ namespace AmazonDeliveryPlanner
             if (lastException != null)
                 MessageBox.Show("Exception loading planners(and configuration): " + lastException.Message);
         }
-
-        private void changeUserButton_Click(object sender, EventArgs e)
-        {
-            if (!OpenPlannerSelectorForm())
-            {
-                MessageBox.Show("Could not get planner list!", GlobalContext.ApplicationTitle);
-                return;
-            }
-            else
-            {
-                ClosePreviousPlannerTabs();
-                // set planner name
-                plannerLabel.Text = "\uA19C" + " " + GlobalContext.LoggedInPlanner.ToString(); // U+1F464 ??  U+A19C ?
-
-                string[] roles = GlobalContext.LoggedInPlanner.roles;
-                if (roles.Contains("pm") || roles.Contains("admin"))
-                {
-                    exportFileAutoDownloadEnabledCheckBox.Checked = true;
-                    exportFileAutoDownloadEnabledCheckBox.Show();
-                }
-                else
-                {
-                    exportFileAutoDownloadEnabledCheckBox.Checked = false;
-                    exportFileAutoDownloadEnabledCheckBox.Hide();
-                }
-            }
-        }
-
-        void ClosePreviousPlannerTabs()
-        {
-            foreach (TabPage page in tabControl.TabPages)
-            {
-                tabControl.TabPages.Remove(page);
-
-                Driver drv = GlobalContext.LastDriverList.drivers.Where(dr => dr.driver_id == ((DriverSessionObject)page.Tag).DriverId).SingleOrDefault();
-
-                openTabDrivers[drv.driver_id] = false;
-
-            }
-        }
-
-        void LoadScripts()
+       void LoadScripts()
         {
 
 
@@ -1112,22 +443,6 @@ namespace AmazonDeliveryPlanner
         }
 
         TabControl uniqueSharedUrlsTabControl;
-
-        private void tabControl_Selecting(object sender, TabControlCancelEventArgs e)
-        {
-
-            if (e.TabPageIndex == -1)
-                return;
-
-            TabControl tc = uniqueSharedUrlsTabControl;
-            ((DriverSessionObject)e.TabPage.Tag).DriverUC.SplitContainer.Panel1.Controls.Add(tc);
-
-        }
-
-        private void tabControl_TabIndexChanged(object sender, EventArgs e)
-        {
-
-        }
 
         private void exportFileAutoDownloadEnabledCheckBox_CheckedChanged(object sender, EventArgs e)
         {

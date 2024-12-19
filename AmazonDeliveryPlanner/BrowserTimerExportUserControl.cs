@@ -50,15 +50,8 @@ namespace AmazonDeliveryPlanner
             // this.driverId = driverId;
             this.url = url;
             this.requestContextSettings = requestContextSettings;
-
             InitializeComponent();
-
             InitBrowser();
-
-            browser.PreviewKeyDown += Browser_PreviewKeyDown;
-            browser.KeyUp += Browser_KeyUp;
-            browser.KeyboardHandler = new BrowserKeyboardHandler();
-
         }
 
         public void GoToURL(string url)
@@ -75,21 +68,6 @@ namespace AmazonDeliveryPlanner
             nextDownload = 0;
             nextRefresh = 0;
         }
-
-
-
-        private void Browser_KeyUp(object sender, KeyEventArgs e)
-        {
-            e.SuppressKeyPress = false;
-        }
-
-        private void Browser_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            if ((e.Control || e.KeyCode == Keys.ControlKey) && (e.KeyCode == Keys.F))
-                GlobalContext.MainWindow.OpenSearchDriverForm();
-        }
-
-
 
         void InitBrowser()
         {
@@ -217,7 +195,7 @@ namespace AmazonDeliveryPlanner
                 try
                 {
                     uploadURL = GlobalContext.SerializedConfiguration.AdminURL;
-                    uploadURL += GlobalContext.SerializedConfiguration.ApiBaseURL;
+                    uploadURL += GlobalContext.SerializedConfiguration.APIBaseURL;
                     uploadURL += GlobalContext.SerializedConfiguration.FileUploadURL;
                     uploadURL += "/" + pageType;
 
@@ -347,8 +325,8 @@ namespace AmazonDeliveryPlanner
                 if ((e.Url.IndexOf("amazon.com/ap/signin") >= 0) ||
                     (e.Url.IndexOf("amazon.co.uk/ap/signin") >= 0))
                 {
-                    string email = GlobalContext.ApiConfig.relayAuth.username;
-                    string pass = GlobalContext.ApiConfig.relayAuth.password;
+                    string email = GlobalContext.SerializedConfiguration.RelayAuth.Username;
+                    string pass = GlobalContext.SerializedConfiguration.RelayAuth.Password;
 
                     string jsSource1 = string.Format(
                         "(function () {{ document.getElementById('ap_email').value = '{0}'; document.getElementById('ap_password').value = '{1}'; }} )(); ",

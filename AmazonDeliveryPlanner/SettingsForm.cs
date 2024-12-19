@@ -14,12 +14,12 @@ namespace AmazonDeliveryPlanner
 
             // urls = new string[0];
             // GlobalContext.SerializedConfiguration.DefaultTabs.CopyTo(urls, 0);
-            urls = new List<string>(GlobalContext.SerializedConfiguration.DefaultTabs);
+            // urls = new List<string>(GlobalContext.SerializedConfiguration.DefaultTabs);
         }
 
         private void saveButton_Click(object sender, EventArgs e)
         {
-            GlobalContext.SerializedConfiguration.DefaultTabs = urls.ToArray();
+            // GlobalContext.SerializedConfiguration.DefaultTabs = urls.ToArray();
             this.DialogResult = DialogResult.OK;
         }
 
