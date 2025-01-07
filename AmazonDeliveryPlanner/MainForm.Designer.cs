@@ -122,7 +122,6 @@ namespace AmazonDeliveryPlanner
             // 
             // IntransitTabPage
             // 
-            this.IntransitTabPage.Controls.Add(this.button1);
             this.IntransitTabPage.Controls.Add(this.intransitTabBrowserTimerExportUserControl);
             this.IntransitTabPage.Location = new System.Drawing.Point(4, 22);
             this.IntransitTabPage.Name = "IntransitTabPage";
@@ -131,15 +130,7 @@ namespace AmazonDeliveryPlanner
             this.IntransitTabPage.TabIndex = 4;
             this.IntransitTabPage.Text = "In-transit";
             this.IntransitTabPage.UseVisualStyleBackColor = true;
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(813, -17);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 14);
-            this.button1.TabIndex = 2;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = true;
+            
             // 
             // intransitTabBrowserTimerExportUserControl
             // 

@@ -45,18 +45,12 @@ namespace AmazonDeliveryPlanner
             set => relayAuth = value;
         }
 
+        // sha1(email).sha1(password)
         [JsonProperty("admin_token")]
         public string AdminToken
         {
             get => adminToken;
             set => adminToken = value;
-        }
-
-        [JsonProperty("admin_token_tpl")]
-        public string AdminTokenTpl
-        {
-            get => adminTokenTpl;
-            set => adminTokenTpl = value;
         }
 
         [JsonProperty("download_directory_path")]

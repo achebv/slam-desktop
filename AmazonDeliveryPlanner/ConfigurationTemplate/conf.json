@@ -1,5 +1,5 @@
 {
-  "admin_url": "http://localhost:8085",
+  "admin_url": "http://localhost:5173",
   "api_base_url": "/api",
   "amz_tabs": [
     {
@@ -26,9 +26,8 @@
     "username": "planners@dlg1.co.uk",
     "password": "Dual202020"
   },
-  "admin_token": "sha1(email).sha1(pass)",
-  "admin_token_tpl": "sh1()",
+  "admin_token": "5e409ad01ae92b7dcbe6aa67a60d3010609b8fa3.1f8ce34b09613e57f00b79a557404d71970adb30",
   "download_directory_path": "c:\\temp\\amazon_download_directory",
-  "file_upload_url": "/auth2/external/upload",
+  "file_upload_url": "/v1/external-desktop/trip-import",
   "debug": true
 }

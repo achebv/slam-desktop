@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -173,6 +174,7 @@ namespace AmazonDeliveryPlanner
 
         private bool isDownloadInProgress = false;
 
+
         private async void BrowserUserControl_OnDownloadUpdatedFired(object sender, DownloadItem e)
         {
             GlobalContext.Log("Downloaded isDownloadInProgress: one '{0}'", isDownloadInProgress);
@@ -198,6 +200,85 @@ namespace AmazonDeliveryPlanner
                     uploadURL += GlobalContext.SerializedConfiguration.APIBaseURL;
                     uploadURL += GlobalContext.SerializedConfiguration.FileUploadURL;
                     uploadURL += "/" + pageType;
+                    uploadURL += "/" + GlobalContext.SerializedConfiguration.AdminToken;
+
+                    GlobalContext.Log("Upload URL=\"{0}\"", uploadURL);
+
+                    string filePath = e.FullPath;
+                    string fileName = e.SuggestedFileName;
+                    if (string.IsNullOrEmpty(fileName))
+                        fileName = Path.GetFileName(filePath);
+
+                    using (var client = new HttpClient())
+                    using (var content = new MultipartFormDataContent())
+                    using (var stream = File.OpenRead(filePath))
+                    {
+                        var fileContent = new StreamContent(stream);
+                        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                        // Add file to the form
+                        content.Add(fileContent, "files", fileName);
+
+                        var response = await client.PostAsync(uploadURL, content);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            // Handle non-successful response
+                            string errorDetails = await response.Content.ReadAsStringAsync();
+                            GlobalContext.Log($"Error uploading file: {response.StatusCode}, Details: {errorDetails}");
+                            throw new Exception("File upload failed");
+                        }
+
+                        string responseText = await response.Content.ReadAsStringAsync();
+                        LogResponse(responseText);
+
+                        FileUploadFinished?.Invoke(this, new FileUploadFinishedEventArgs(fileName));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    GlobalContext.Log($"Exception uploading the file to {uploadURL}: {ex.Message}");
+                    GlobalContext.Log($"StackTrace: {ex.StackTrace}");
+                }
+                finally
+                {
+                    isDownloadInProgress = false;
+                }
+                onUploadDone(browser);
+            }
+            finally
+            {
+                isDownloadInProgress = false; // Reset the flag
+            }
+        }
+
+
+        private async void BrowserUserControl_OnDownloadUpdatedFired_OLD(object sender, DownloadItem e)
+        {
+            GlobalContext.Log("Downloaded isDownloadInProgress: one '{0}'", isDownloadInProgress);
+
+            if (isDownloadInProgress)
+            {
+                return; // Exit if a download is already in progress
+            }
+
+            isDownloadInProgress = true; // Set the flag
+
+            try
+            {
+                if (!e.IsComplete) return;
+
+                GlobalContext.Log("Downloaded isDownloadInProgress: two '{0}'", isDownloadInProgress);
+
+                string uploadURL = "";
+
+                try
+                {
+                    uploadURL = GlobalContext.SerializedConfiguration.AdminURL;
+                    uploadURL += GlobalContext.SerializedConfiguration.APIBaseURL;
+                    uploadURL += GlobalContext.SerializedConfiguration.FileUploadURL;
+                    uploadURL += "/" + pageType;
+                    uploadURL += "/" + GlobalContext.SerializedConfiguration.AdminToken;
 
                     GlobalContext.Log("Upload URL=\"{0}\"", uploadURL);
 
@@ -214,13 +295,21 @@ namespace AmazonDeliveryPlanner
                     using (var client = new HttpClient())
                     using (var formData = new MultipartFormDataContent())
                     {
-                        formData.Add(bytesContent, "files", fileName);
+                        // Create content for file upload
+                        ByteArrayContent fileContent = new ByteArrayContent(bytes);
+                        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+                        // Add file content to form data
+                        formData.Add(fileContent, "files", fileName);
 
                         var response = await client.PostAsync(uploadURL, formData);
 
                         if (!response.IsSuccessStatusCode)
                         {
                             // Handle non-successful response
+                            string errorDetails = await response.Content.ReadAsStringAsync();
+                            Console.WriteLine($"Error: {response.StatusCode}, Details: {errorDetails}");
+                            throw new Exception("File upload failed");
                         }
 
                         using (var stream = await response.Content.ReadAsStreamAsync())
