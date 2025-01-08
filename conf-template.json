@@ -1,0 +1,37 @@
+{
+  "admin_url_local": "http://localhost:5173",
+  "admin_url": "https://app.startms.com",
+  "api_base_url": "/api",
+  "amz_tabs": [
+    {
+      "url": "https://relay.amazon.co.uk/tours/upcoming",
+      "min_min": 12,
+      "max_min": 21
+    },
+    {
+      "url": "https://relay.amazon.co.uk/tours/in-transit",
+      "min_min": 15,
+      "max_min": 26
+    },
+    {
+      "url": "https://relay.amazon.co.uk/tours/history",
+      "min_min": 14,
+      "max_min": 31
+    }
+  ],
+  "relay_auth": {
+    "username": "data@slamdvd.co.uk",
+    "password": "Slam12345!"
+  },
+  "relay_auth_dlg1": {
+    "username": "planners@dlg1.co.uk",
+    "password": "Dual202020"
+  },
+  "admin_token_local_dev": "5e409ad01ae92b7dcbe6aa67a60d3010609b8fa3.1f8ce34b09613e57f00b79a557404d71970adb30",
+  "admin_token_slam_____": "73240f1fb6f89208152fcd4893f124e077da64a8.6a5393c24c9ac5120ec3509907c34961a833a45b",
+  "admin_token_dlg1_____": "346ce679d7e38eb43efe06ac806c6525d21fb37c.aa98116a74df679243b6a3442ef3975b64e2aff9",
+  "admin_token_doitdev__": "5e409ad01ae92b7dcbe6aa67a60d3010609b8fa3.1f8ce34b09613e57f00b79a557404d71970adb30",
+  "download_directory_path": "c:\\temp\\amazon_download_directory",
+  "file_upload_url": "/v1/external-desktop/trip-import",
+  "debug": true
+}
